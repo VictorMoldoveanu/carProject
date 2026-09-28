@@ -45,12 +45,15 @@ void setup() {
 }
 
 void loop() {
+  // updates steering angle outside of data reading to be smoother
+  // slowly increments steering to not draw too much power from the motor
   if (current < target)
     current += stepSize;
   else if (current > target)
     current -= stepSize;
   steerMotor.write(current);
 
+  // switches the headlights on and off
   if (frontLightsOn){
     digitalWrite(FrtLftPin, HIGH);
     digitalWrite(FrtRtPin, HIGH);
@@ -68,7 +71,7 @@ void loop() {
     char honkInput = 'x';
     char headLightInput = 'x';
 
-    // Ensure the string is exactly 4 characters before acting
+    // ensure the string is exactly 4 characters before acting
     if (input.length() == 4) {
       steerInput = input[0];
       driveInput = input[1];
@@ -76,6 +79,7 @@ void loop() {
       headLightInput = input[3];
     }
 
+    // instantly switches target to be responsive
     if (steerInput == 'a')
       target = left;
     else if (steerInput == 'd')
@@ -83,6 +87,7 @@ void loop() {
     else
       target = straight;
 
+    // has tail lights on by default unless driving forward
     digitalWrite(BckLftPin, HIGH);
     digitalWrite(BckRtPin, HIGH);
     if (driveInput == 'w'){
