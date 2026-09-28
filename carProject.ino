@@ -4,6 +4,9 @@ const int steerPin = 9;
 const int straight = 90;
 const int left = 145;
 const int right = 35;
+int target = straight;
+int current = straight;
+int stepSize = 1;
 Servo steerMotor;
 
 const int drivePin = 8;
@@ -42,6 +45,12 @@ void setup() {
 }
 
 void loop() {
+  if (current < target)
+    current += stepSize;
+  else if (current > target)
+    current -= stepSize;
+  steerMotor.write(current);
+
   if (frontLightsOn){
     digitalWrite(FrtLftPin, HIGH);
     digitalWrite(FrtRtPin, HIGH);
@@ -68,11 +77,11 @@ void loop() {
     }
 
     if (steerInput == 'a')
-      steerMotor.write(left);
+      target = left;
     else if (steerInput == 'd')
-      steerMotor.write(right);
+      target = right;
     else
-      steerMotor.write(straight);
+      target = straight;
 
     digitalWrite(BckLftPin, HIGH);
     digitalWrite(BckRtPin, HIGH);
