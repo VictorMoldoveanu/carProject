@@ -10,9 +10,9 @@ int stepSize = 1;
 Servo steerMotor;
 
 const int drivePin = 8;
-const int go = 180;
-const int stop = 90;
-const int reverse = 0;
+const int go = 0;
+const int stop = 87.5;
+const int reverse = 180;
 Servo driveMotor;
 
 const int piezoPin = 7;
