@@ -78,7 +78,7 @@ void loop() {
     char headLightInput = 'x';
     char blinkerInput = 'x';
 
-    // ensure the string is exactly 4 characters before acting
+    // ensure the string is exactly 5 characters before acting
     if (input.length() == 5) {
       steerInput = input[0];
       driveInput = input[1];
