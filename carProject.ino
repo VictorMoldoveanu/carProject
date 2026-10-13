@@ -22,6 +22,17 @@ const int FrtLftPin = 7;
 const int FrtRtPin = 8;
 const int BckLftPin = 9;
 const int BckRtPin = 10;
+enum class blinkMode : uint8_t{
+  normal,
+  leftSignal,
+  hazzard,
+  rightSignal
+};
+blinkMode currentBlinkMode = blinkMode::normal;
+bool turnStarted = false;
+const unsigned long blinkInterval = 400;  // ms on, then ms off
+unsigned long lastBlink = 0;
+bool blinkOn = false;
 
 bool frontLightsOn = true;
 
@@ -45,6 +56,11 @@ void setup() {
 }
 
 void loop() {
+  if (millis() - lastBlink >= blinkInterval) {
+    lastBlink = millis();
+    blinkOn = !blinkOn;
+  }
+
   // updates steering angle outside of data reading to be smoother
   // slowly increments steering to not draw too much power from the motor
   if (current < target)
@@ -53,52 +69,132 @@ void loop() {
     current -= stepSize;
   steerMotor.write(current);
 
-  // switches the headlights on and off
-  if (frontLightsOn){
-    digitalWrite(FrtLftPin, HIGH);
-    digitalWrite(FrtRtPin, HIGH);
-  }
-  else{
-    digitalWrite(FrtLftPin, LOW);
-    digitalWrite(FrtRtPin, LOW);
-  }
-
   if (Serial.available()){
     String input = Serial.readStringUntil('\n');
     
-    char steerInput = 'x';
+    char steerInput = '7'; // middle 55 is '7'
     char driveInput = 'x';
     char honkInput = 'x';
     char headLightInput = 'x';
+    char blinkerInput = 'x';
 
     // ensure the string is exactly 4 characters before acting
-    if (input.length() == 4) {
+    if (input.length() == 5) {
       steerInput = input[0];
       driveInput = input[1];
       honkInput = input[2];
       headLightInput = input[3];
+      blinkerInput = input[4];
     }
 
-    // instantly switches target to be responsive
-    if (steerInput == 'a')
-      target = left;
-    else if (steerInput == 'd')
-      target = right;
-    else
-      target = straight;
+    target = static_cast<int>(steerInput)+35;
 
-    // has tail lights on by default unless driving forward
-    digitalWrite(BckLftPin, HIGH);
-    digitalWrite(BckRtPin, HIGH);
-    if (driveInput == 'w'){
-      driveMotor.write(go);
-      digitalWrite(BckLftPin, LOW);
-      digitalWrite(BckRtPin, LOW);
+    if (blinkerInput == 'a')
+      currentBlinkMode = blinkMode::leftSignal;
+    else if (blinkerInput == 'd')
+      currentBlinkMode = blinkMode::rightSignal;
+    else if ((blinkerInput == 's') && (currentBlinkMode == blinkMode::hazzard))
+      currentBlinkMode = blinkMode::normal;
+    else if (blinkerInput == 's')
+      currentBlinkMode = blinkMode::hazzard;
+
+    if (blinkerInput == 'a' || blinkerInput == 'd')
+      turnStarted = false;
+    if (currentBlinkMode == blinkMode::leftSignal || currentBlinkMode == blinkMode::rightSignal) {
+      if (target != straight)
+        turnStarted = true;
+      else if (turnStarted)
+        currentBlinkMode = blinkMode::normal;
     }
-    else if (driveInput == 's')
-      driveMotor.write(reverse);
-    else
-      driveMotor.write(stop);
+
+    // Huge block of code deals with driving and blink handling, could split into multiple functions to be more manageable
+    if (currentBlinkMode == blinkMode::normal){//normal case
+      if (frontLightsOn){
+        digitalWrite(FrtLftPin, HIGH);
+        digitalWrite(FrtRtPin, HIGH);
+      }
+      else{
+        digitalWrite(FrtLftPin, LOW);
+        digitalWrite(FrtRtPin, LOW);
+      }
+      digitalWrite(BckLftPin, HIGH);
+      digitalWrite(BckRtPin, HIGH);
+      if (driveInput == 'w'){
+        driveMotor.write(go);
+        digitalWrite(BckLftPin, LOW);
+        digitalWrite(BckRtPin, LOW);
+      }
+      else if (driveInput == 's')
+        driveMotor.write(reverse);
+      else
+        driveMotor.write(stop);
+    }
+    else if (currentBlinkMode == blinkMode::hazzard){//hazzard case
+      if (blinkOn){
+        digitalWrite(BckLftPin, HIGH);
+        digitalWrite(BckRtPin, HIGH);
+        digitalWrite(FrtLftPin, HIGH);
+        digitalWrite(FrtRtPin, HIGH);
+      }
+      else{
+        digitalWrite(BckLftPin, LOW);
+        digitalWrite(BckRtPin, LOW);
+        digitalWrite(FrtLftPin, LOW);
+        digitalWrite(FrtRtPin, LOW);
+      }
+      if (driveInput == 'w')
+        driveMotor.write(go);
+      else if (driveInput == 's')
+        driveMotor.write(reverse);
+      else
+        driveMotor.write(stop);
+    }
+    else if (currentBlinkMode == blinkMode::leftSignal){//left signal case
+      if (frontLightsOn)
+        digitalWrite(FrtRtPin, HIGH);
+      else
+        digitalWrite(FrtRtPin, LOW);
+      if (blinkOn){
+        digitalWrite(BckLftPin, HIGH);
+        digitalWrite(FrtLftPin, HIGH);
+      }
+      else{
+        digitalWrite(BckLftPin, LOW);
+        digitalWrite(FrtLftPin, LOW);
+      }
+      digitalWrite(BckRtPin, HIGH);
+      if (driveInput == 'w'){
+        driveMotor.write(go);
+        digitalWrite(BckRtPin, LOW);
+      }
+      else if (driveInput == 's')
+        driveMotor.write(reverse);
+      else
+        driveMotor.write(stop);
+    }
+    else{//right signal case
+      if (frontLightsOn)
+        digitalWrite(FrtLftPin, HIGH);
+      else
+        digitalWrite(FrtLftPin, LOW);
+      if (blinkOn){
+        digitalWrite(BckRtPin, HIGH);
+        digitalWrite(FrtRtPin, HIGH);
+      }
+      else{
+        digitalWrite(BckRtPin, LOW);
+        digitalWrite(FrtRtPin, LOW);
+      }
+      digitalWrite(BckLftPin, HIGH);
+      if (driveInput == 'w'){
+        driveMotor.write(go);
+        digitalWrite(BckLftPin, LOW);
+      }
+      else if (driveInput == 's')
+        driveMotor.write(reverse);
+      else
+        driveMotor.write(stop);
+    }
 
     if (honkInput == 'h')
       tone(piezoPin,honkTone);
