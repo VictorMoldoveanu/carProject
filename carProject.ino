@@ -1,6 +1,6 @@
 #include <Servo.h>
 
-const int steerPin = 9;
+const int steerPin = 13;
 const int straight = 90;
 const int left = 145;
 const int right = 35;
@@ -9,19 +9,19 @@ int current = straight;
 int stepSize = 1;
 Servo steerMotor;
 
-const int drivePin = 8;
+const int drivePin = 12;
 const int go = 0;
 const int stop = 87.5;
 const int reverse = 180;
 Servo driveMotor;
 
-const int piezoPin = 7;
+const int piezoPin = 11;
 const int honkTone = 400;
 
-const int FrtLftPin = 2;
-const int FrtRtPin = 3;
-const int BckLftPin = 4;
-const int BckRtPin = 5;
+const int FrtLftPin = 7;
+const int FrtRtPin = 8;
+const int BckLftPin = 9;
+const int BckRtPin = 10;
 
 bool frontLightsOn = true;
 
